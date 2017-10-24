@@ -14,8 +14,8 @@ function consistentReadAsync(filename, callback) {
   }
 }
 
-consistentReadAsync('data.txt', (data) => {
+consistentReadAsync('README.txt', (data) => {
   console.log(data);
   // the next call will read from the cache but still be async
-  consistentReadAsync('data.txt', (data) => console.log(data));
+  consistentReadAsync('README.txt', (data) => console.log(data));
 });
