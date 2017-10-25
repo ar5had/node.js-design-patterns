@@ -177,3 +177,105 @@ When analyzing the resolving alog, we have seen in fact, that a module might be 
 
 Moral of the story: don't export instances but export constructor instead.
 
+### Monkey Patching
+A module can modify other modules or objects in global scope; well, this is called **monkey patching**. It generally refers to the practice of modifying the existing objects at runtime to change or extend their behaviour or to apply temporary fixes.
+
+Example:
+```js
+// patcher.js
+require('./logger').customMethod = () => {...};
+
+// main.js
+require('./patcher');
+const logger = require('./logger');
+logger.customMethod(...);
+```
+In the preceding code, `patcher` must be required before using the `logger` module for the first time in order to allow the patch to be applied.
+
+The techniques described here are all dangerous ones to apply. The main concern is that having a module that modifies the global namespce or other modules is an operation with side effects. In other words, it affects the state of entities outside their scope, which can have consequences that aren't predictable, especially when multiple modules interac with the same entities.
+
+### Observer Pattern
+**Pattern(observer)** defines an object(called subject), which can notify a set of observers(or listeners), when a change in its state happens. The main difference from the callback pattern is that the subject can actually notify multiple observers, while a traditional continuation-passing style callback will usually progate its result to only one listener, the callback.
+
+### EventEmitter Class
+In traditional OOP languages, the observer pattern requires concrete classes , and a heirarchy; in Node.js, all becomes simpler. The observer pattern is already built into the core and is abailable through the EventEmitter class.
+
+The EventEmitter is a prototype and it is exported from the events core module.
+```js
+const EventEmitter = require('events').EventEmitter;
+const eeInstance = new EventEmitter();
+```
+Essential methods of the EventEmitter are as follows:
+* on(event, listener)
+* once(event, listener)
+* emit(event, [arg1], [...])
+* removeListener(event, listener)
+
+We can already see that there is a big difference between a listener and a traditional Node.js callback; in particular, the first arg is not an error, but it can be any data passed to emit() at the moment of invocation.
+
+### Creating and using EventEmitter
+```js
+const EventEmitter = require('events').EventEmitter;
+const fs = require('fs');
+
+function findPattern(files, reqex) {
+    const emitter = new EventEmitter();
+...
+...
+    return emitter;
+}
+
+// using findPattern
+findPattern(..., ...)
+.on('fileread', ...)
+.on('found', ...)
+.on('error', ...);
+```
+**NOTE:** Make sure you always create a handler for error as without using it and throwing error will propogate to event loop and it will get lost.
+
+### Making any object observable
+```js
+const  EventEmitter = require('events').EventEmitter;
+const fs = require('fs');
+
+class findPattern extends EventEmitter {
+    constructor(regex) {
+        super();
+        this.regex = regex;
+        this.files = [];
+    }
+
+    addFile(file) {
+        this.files.push(file);
+        // returning instance so that methods can be chained
+        return this;
+    }
+
+    find() {
+        this.files.forEach(file => {
+            fs.readFile(... , ..., (err, content)=>{
+                if(err)
+                return this.emit('error', err);
+                this.emit('fileread', file);
+
+                let match = null;
+                if(match = content.match(this.regex)) {
+                    match.forEach(elem => this.emit('found', file, elem));
+                }
+            });
+
+        });
+        return this;
+    }
+}
+
+// Using FindPattern
+
+const findPatternObject = new FindPattern(/hello \w+/);
+
+findPatternObject
+    .add(...)
+    .add(...)
+    .find()
+    .on('found', (file, match) => ...)
+    .on('error', err => ...);
