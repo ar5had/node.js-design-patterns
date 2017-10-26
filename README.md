@@ -301,4 +301,4 @@ helloEvents().on('hello', (message) => console.log(message));
 helloCallback((message) => console.log(message));
 ```
 
-**NOTE:** Combo of callback and EventEmitter can also exist, for ex - glob module.
+**NOTE:** Combination of callback and EventEmitter can also exist, for ex - glob module.
